@@ -22,6 +22,8 @@ struct BreakPlannerLiveActivity: Widget {
                         Text(context.state.eventTitle)
                             .font(.headline)
                             .lineLimit(1)
+                        Text(eventClockDescription(for: context.state))
+                            .font(.caption)
                         Text(context.attributes.employeeName)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -57,6 +59,8 @@ struct BreakPlannerLiveActivity: Widget {
                 Text(context.state.eventTitle)
                     .font(.headline)
                     .lineLimit(2)
+                Text(eventClockDescription(for: context.state))
+                    .font(.subheadline.weight(.semibold))
                 Text(context.attributes.employeeName)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.8))
@@ -101,6 +105,16 @@ struct BreakPlannerLiveActivity: Widget {
 
     private func countdownTarget(for state: BreakActivityAttributes.ContentState) -> Date {
         state.eventKind == "activeBreak" ? state.eventEndsAt : state.eventStartsAt
+    }
+
+    private func eventClockDescription(for state: BreakActivityAttributes.ContentState) -> String {
+        let label: String
+        switch state.eventKind {
+        case "activeBreak": label = "Ends at"
+        case "shiftEnd": label = "Shift ends at"
+        default: label = "Starts at"
+        }
+        return "\(label) \(countdownTarget(for: state).formatted(date: .omitted, time: .shortened))"
     }
 
     private func countdownLabel(for state: BreakActivityAttributes.ContentState) -> String {
