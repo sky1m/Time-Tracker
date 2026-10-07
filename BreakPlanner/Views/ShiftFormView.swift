@@ -34,15 +34,18 @@ struct ShiftFormView: View {
                     DatePicker("Start", selection: $startTime, displayedComponents: .hourAndMinute)
                     DatePicker("End", selection: $endTime, displayedComponents: .hourAndMinute)
                 }
+                .listRowBackground(TransitTheme.surface)
                 Section {
                     if startMinutes == endMinutes {
-                        Text("Start and end times must be different.").foregroundStyle(.red)
+                        Text("Start and end times must be different.").foregroundStyle(TransitTheme.error)
                     } else if endMinutes < startMinutes {
-                        Text("This shift ends on the following day.").foregroundStyle(.secondary)
+                        Text("This shift ends on the following day.").foregroundStyle(TransitTheme.secondaryText)
                     }
-                    if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                    if let errorMessage { Text(errorMessage).foregroundStyle(TransitTheme.error) }
                 }
+                .listRowBackground(TransitTheme.surface)
             }
+            .transitScreenStyle()
             .navigationTitle(shift == nil ? "Add Shift" : "Edit Shift")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

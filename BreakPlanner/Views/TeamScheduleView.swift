@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct TeamScheduleView: View {
+    @AppStorage("appearanceMode") private var appearanceMode: TransitTheme.Appearance = .light
     @Query(sort: \Employee.name) private var employees: [Employee]
     @Query(sort: \Shift.startsAt) private var shifts: [Shift]
     @State private var selectedWorkday = Calendar.current.startOfDay(for: .now)
@@ -35,17 +36,30 @@ struct TeamScheduleView: View {
                 Section {
                     DatePicker("Workday", selection: $selectedWorkday, displayedComponents: .date)
                 }
+                .listRowBackground(TransitTheme.surface)
+                Section("Appearance") {
+                    Picker("Appearance", selection: $appearanceMode) {
+                        ForEach(TransitTheme.Appearance.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .listRowBackground(TransitTheme.surface)
                 if employees.isEmpty {
                     ContentUnavailableView("No Employees", systemImage: "person.2", description: Text("Add an employee to start planning shifts."))
+                        .listRowBackground(TransitTheme.surface)
                 } else {
                     if workdayShifts.isEmpty {
                         Section {
-                            Text("No shifts for this workday. Add a shift for an employee below.").foregroundStyle(.secondary)
+                            Text("No shifts for this workday. Add a shift for an employee below.").foregroundStyle(TransitTheme.secondaryText)
                         }
+                        .listRowBackground(TransitTheme.surface)
                     }
                     Section("Team") {
                         ForEach(employees) { employee in employeeRow(employee) }
                     }
+                    .listRowBackground(TransitTheme.surface)
                 }
                 Section {
                     Button {
@@ -54,7 +68,9 @@ struct TeamScheduleView: View {
                         Label("Add Employee", systemImage: "person.badge.plus")
                     }
                 }
+                .listRowBackground(TransitTheme.surface)
             }
+            .transitScreenStyle()
             .navigationTitle("Break Planner")
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { timelineStart = .now }
@@ -83,7 +99,7 @@ struct TeamScheduleView: View {
             if let shift {
                 Text("\(shift.startsAt.formatted(date: .omitted, time: .shortened)) – \(shift.endsAt.formatted(date: .omitted, time: .shortened))")
                 if !Calendar.current.isDate(shift.startsAt, inSameDayAs: shift.endsAt) {
-                    Text("Ends the following day").font(.caption).foregroundStyle(.secondary)
+                    Text("Ends the following day").font(.caption).foregroundStyle(TransitTheme.secondaryText)
                 }
                 NavigationLink {
                     ShiftRouteView(shift: shift)
@@ -101,7 +117,7 @@ struct TeamScheduleView: View {
                 Button("Edit Shift") { presentedForm = .shift(employee, shift, selectedWorkday) }
                     .buttonStyle(.borderless)
             } else {
-                Text("No shift assigned").foregroundStyle(.secondary)
+                Text("No shift assigned").foregroundStyle(TransitTheme.secondaryText)
                 Button("Add Shift") { presentedForm = .shift(employee, nil, selectedWorkday) }
                     .buttonStyle(.borderless)
             }

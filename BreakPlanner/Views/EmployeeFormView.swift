@@ -26,13 +26,16 @@ struct EmployeeFormView: View {
                     TextField("Name", text: $name)
                         .textContentType(.name)
                     if trimmedName.isEmpty {
-                        Text("Enter an employee name.").foregroundStyle(.secondary)
+                        Text("Enter an employee name.").foregroundStyle(TransitTheme.secondaryText)
                     }
                 }
+                .listRowBackground(TransitTheme.surface)
                 if let errorMessage {
-                    Section { Text(errorMessage).foregroundStyle(.red) }
+                    Section { Text(errorMessage).foregroundStyle(TransitTheme.error) }
+                        .listRowBackground(TransitTheme.surface)
                 }
             }
+            .transitScreenStyle()
             .navigationTitle(employee == nil ? "Add Employee" : "Edit Employee")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
