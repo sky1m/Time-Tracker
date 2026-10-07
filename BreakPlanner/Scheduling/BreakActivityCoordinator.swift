@@ -5,6 +5,7 @@ import SwiftUI
 enum ActivitySchedulingResult: Equatable {
     case scheduled
     case updated
+    case waitingForShift
     case alreadyEnded
     case disabled
     case failed(String)
@@ -13,10 +14,23 @@ enum ActivitySchedulingResult: Equatable {
 @MainActor
 final class BreakActivityCoordinator: ObservableObject {
     @Published private(set) var resultsByShiftID: [UUID: ActivitySchedulingResult] = [:]
+    private var pendingByShiftID: [UUID: (token: UUID, task: Task<ActivitySchedulingResult, Never>)] = [:]
 
     func scheduleOrUpdate(shift: Shift, now: Date = .now) async -> ActivitySchedulingResult {
-        let result = await scheduleOrUpdateActivity(shift: shift, now: now)
-        resultsByShiftID[shift.id] = result
+        let shiftID = shift.id
+        let previous = pendingByShiftID[shiftID]?.task
+        let token = UUID()
+        let task = Task { @MainActor in
+            _ = await previous?.value
+            let result = await scheduleOrUpdateActivity(shift: shift, now: now)
+            resultsByShiftID[shiftID] = result
+            return result
+        }
+        pendingByShiftID[shiftID] = (token, task)
+        let result = await task.value
+        if pendingByShiftID[shiftID]?.token == token {
+            pendingByShiftID[shiftID] = nil
+        }
         return result
     }
 
@@ -91,7 +105,7 @@ final class BreakActivityCoordinator: ObservableObject {
                         start: shift.startsAt
                     )
                 } else {
-                    return .failed("Scheduled Live Activities require iOS 26 or later.")
+                    return .waitingForShift
                 }
             } else if #available(iOS 18.0, *) {
                 _ = try Activity.request(attributes: attributes, content: content, pushType: nil, style: .standard)
