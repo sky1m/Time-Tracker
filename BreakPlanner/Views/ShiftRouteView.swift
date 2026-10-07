@@ -101,7 +101,8 @@ struct ShiftCountdownSummary: View {
             case .active(let stop, let seconds):
                 Text("\(stop.letter) · \(kindLabel(stop)) active").font(.headline)
                 countdown(seconds)
-                Text("Time remaining in break").font(.caption).foregroundStyle(TransitTheme.secondaryText)
+                Text("Time remaining in break · Ends at \(stop.endsAt.formatted(date: .omitted, time: .shortened))")
+                    .font(.caption).foregroundStyle(TransitTheme.secondaryText)
             case .noMoreStops(let shiftEnd, let seconds):
                 Text("No more stops").font(.headline)
                 countdown(seconds)
