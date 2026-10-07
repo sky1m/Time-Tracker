@@ -7,6 +7,7 @@ struct TeamScheduleView: View {
     @Query(sort: \Shift.startsAt) private var shifts: [Shift]
     @State private var selectedWorkday = WorkdayDate.localCalendar.startOfDay(for: .now)
     @State private var presentedForm: PresentedForm?
+    @EnvironmentObject private var activityCoordinator: BreakActivityCoordinator
     @Environment(\.scenePhase) private var scenePhase
     @State private var timelineStart = Date.now
 
@@ -48,13 +49,10 @@ struct TeamScheduleView: View {
                     ContentUnavailableView("No Employees", systemImage: "person.2", description: Text("Add an employee to start planning shifts."))
                         .listRowBackground(TransitTheme.surface)
                 } else {
-                    if workdayShifts.isEmpty {
-                        Section {
+                    Section("Team") {
+                        if workdayShifts.isEmpty {
                             Text("No shifts for this workday. Add a shift for an employee below.").foregroundStyle(TransitTheme.secondaryText)
                         }
-                        .listRowBackground(TransitTheme.surface)
-                    }
-                    Section("Team") {
                         ForEach(employees) { employee in employeeRow(employee) }
                     }
                     .listRowBackground(TransitTheme.surface)
@@ -111,7 +109,13 @@ struct TeamScheduleView: View {
                                 now: context.date
                             ))
                         }
+                        .id(timelineStart)
                     }
+                }
+                if let message = activityCoordinator.resultsByShiftID[shift.id]?.rosterMessage {
+                    Label(message, systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(TransitTheme.secondaryText)
                 }
                 Button("Edit Shift") { presentedForm = .shift(employee, shift, selectedWorkday) }
                     .buttonStyle(.borderless)

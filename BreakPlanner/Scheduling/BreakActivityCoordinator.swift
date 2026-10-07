@@ -9,6 +9,19 @@ enum ActivitySchedulingResult: Equatable {
     case alreadyEnded
     case disabled
     case failed(String)
+
+    var rosterMessage: String? {
+        switch self {
+        case .waitingForShift:
+            return "Open the app during this shift to start its Live Activity."
+        case .disabled:
+            return "Live Activities are disabled on this device."
+        case .failed(let reason):
+            return "Live Activity could not start: \(reason)"
+        case .scheduled, .updated, .alreadyEnded:
+            return nil
+        }
+    }
 }
 
 @MainActor
@@ -71,6 +84,8 @@ final class BreakActivityCoordinator: ObservableObject {
             shiftEndsAt: shift.endsAt
         )
 
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return .disabled }
+
         // Attributes cannot be changed after a request. Replace an edited shift's activity.
         let reusable = matching.first { activity in
             activity.attributes.employeeID == attributes.employeeID &&
@@ -87,7 +102,6 @@ final class BreakActivityCoordinator: ObservableObject {
             return .updated
         }
 
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return .disabled }
         do {
             if shift.startsAt > now {
                 if #available(iOS 26.0, *) {
