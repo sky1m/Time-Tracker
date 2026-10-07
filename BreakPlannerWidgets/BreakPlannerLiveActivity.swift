@@ -94,7 +94,9 @@ struct BreakPlannerLiveActivity: Widget {
     }
 
     private func countdown(to date: Date) -> some View {
-        Text(date, style: .timer)
+        let now = Date.now
+        let deadline = max(now, date)
+        return Text(timerInterval: now...deadline, pauseTime: deadline, countsDown: true)
             .monospacedDigit()
             .contentTransition(.numericText(countsDown: true))
     }
