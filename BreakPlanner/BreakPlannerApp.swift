@@ -7,6 +7,7 @@ struct BreakPlannerApp: App {
         WindowGroup {
             TeamScheduleView()
         }
-        .modelContainer(for: [Employee.self, Shift.self])
+        // Forms explicitly save after validation and restore edits on failure.
+        .modelContainer(for: [Employee.self, Shift.self], isAutosaveEnabled: false)
     }
 }
