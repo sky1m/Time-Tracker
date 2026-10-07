@@ -4,6 +4,7 @@ import SwiftData
 struct ShiftFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var activityCoordinator: BreakActivityCoordinator
     private let employee: Employee
     private let shift: Shift?
     private let onSaved: () -> Void
@@ -112,6 +113,7 @@ struct ShiftFormView: View {
         savedShift.employee = employee
         do {
             try modelContext.save()
+            Task { await activityCoordinator.scheduleOrUpdate(shift: savedShift) }
             onSaved()
             dismiss()
         } catch {
