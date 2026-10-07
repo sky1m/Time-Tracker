@@ -6,6 +6,8 @@ struct TeamScheduleView: View {
     @Query(sort: \Shift.startsAt) private var shifts: [Shift]
     @State private var selectedWorkday = Calendar.current.startOfDay(for: .now)
     @State private var presentedForm: PresentedForm?
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var timelineStart = Date.now
 
     private enum PresentedForm: Identifiable {
         case employee(Employee?)
@@ -54,6 +56,9 @@ struct TeamScheduleView: View {
                 }
             }
             .navigationTitle("Break Planner")
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { timelineStart = .now }
+            }
             .sheet(item: $presentedForm) { form in
                 switch form {
                 case .employee(let employee):
@@ -79,6 +84,19 @@ struct TeamScheduleView: View {
                 Text("\(shift.startsAt.formatted(date: .omitted, time: .shortened)) – \(shift.endsAt.formatted(date: .omitted, time: .shortened))")
                 if !Calendar.current.isDate(shift.startsAt, inSameDayAs: shift.endsAt) {
                     Text("Ends the following day").font(.caption).foregroundStyle(.secondary)
+                }
+                NavigationLink {
+                    ShiftRouteView(shift: shift)
+                } label: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("View Route", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                        TimelineView(.periodic(from: timelineStart, by: 1)) { context in
+                            ShiftCountdownSummary(state: ShiftCountdown.state(
+                                for: ShiftInterval(startsAt: shift.startsAt, endsAt: shift.endsAt),
+                                now: context.date
+                            ))
+                        }
+                    }
                 }
                 Button("Edit Shift") { presentedForm = .shift(employee, shift, selectedWorkday) }
                     .buttonStyle(.borderless)
