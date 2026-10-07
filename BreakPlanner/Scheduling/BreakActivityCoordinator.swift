@@ -84,7 +84,10 @@ final class BreakActivityCoordinator: ObservableObject {
             shiftEndsAt: shift.endsAt
         )
 
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return .disabled }
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            for activity in matching { await activity.end(nil, dismissalPolicy: .immediate) }
+            return .disabled
+        }
 
         // Attributes cannot be changed after a request. Replace an edited shift's activity.
         let reusable = matching.first { activity in
