@@ -15,7 +15,8 @@ struct ShiftRouteView: View {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(shift.employee?.name ?? "Shift route").font(.title2.bold())
-                    Text(shift.workday, format: .dateTime.weekday().month().day().year())
+                    Text(WorkdayDate.localDate(fromStored: shift.workday),
+                         format: Date.FormatStyle(calendar: WorkdayDate.localCalendar).weekday().month().day().year())
                         .foregroundStyle(TransitTheme.secondaryText)
                     Text("\(shift.startsAt.formatted(date: .omitted, time: .shortened)) – \(shift.endsAt.formatted(date: .omitted, time: .shortened))")
                     if !Calendar.current.isDate(shift.startsAt, inSameDayAs: shift.endsAt) {

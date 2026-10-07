@@ -16,8 +16,9 @@ struct ShiftFormView: View {
         self.employee = employee
         self.shift = shift
         self.onSaved = onSaved
-        let calendar = Calendar.current
-        let day = calendar.startOfDay(for: shift?.workday ?? workday)
+        let calendar = WorkdayDate.localCalendar
+        let localWorkday = shift.map { WorkdayDate.localDate(fromStored: $0.workday, calendar: calendar) } ?? workday
+        let day = calendar.startOfDay(for: localWorkday)
         _workday = State(initialValue: day)
         _startTime = State(initialValue: shift?.startsAt ?? calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day)
         _endTime = State(initialValue: shift?.endsAt ?? calendar.date(bySettingHour: 17, minute: 0, second: 0, of: day) ?? day)
@@ -57,10 +58,11 @@ struct ShiftFormView: View {
                 }
             }
         }
+        .environment(\.calendar, WorkdayDate.localCalendar)
     }
 
     private func clockMinutes(_ date: Date) -> Int {
-        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let parts = WorkdayDate.localCalendar.dateComponents([.hour, .minute], from: date)
         return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
     }
 
@@ -77,7 +79,7 @@ struct ShiftFormView: View {
             errorMessage = "Start and end times must be different."
             return
         }
-        let calendar = Calendar.current
+        let calendar = WorkdayDate.localCalendar
         let day = calendar.startOfDay(for: workday)
         guard let endDay = endMinutes < startMinutes ? calendar.date(byAdding: .day, value: 1, to: day) : day,
               let start = combine(day: day, minutes: startMinutes, calendar: calendar),
@@ -90,7 +92,7 @@ struct ShiftFormView: View {
             let savedShifts = try modelContext.fetch(FetchDescriptor<Shift>())
             guard !savedShifts.contains(where: {
                 $0.id != shift?.id && $0.employee?.id == employee.id &&
-                calendar.startOfDay(for: $0.workday) == day
+                WorkdayDate.matches($0.workday, localDate: day, calendar: calendar)
             }) else {
                 errorMessage = "This employee already has a shift on that workday. Edit the existing shift or choose another date."
                 return
@@ -100,10 +102,11 @@ struct ShiftFormView: View {
             return
         }
 
-        let savedShift = shift ?? Shift(workday: day, startsAt: start, endsAt: end, employee: employee)
+        let storedWorkday = WorkdayDate.storedDate(fromLocal: day, calendar: calendar)
+        let savedShift = shift ?? Shift(workday: storedWorkday, startsAt: start, endsAt: end, employee: employee)
         let original = (savedShift.workday, savedShift.startsAt, savedShift.endsAt, savedShift.employee)
         if shift == nil { modelContext.insert(savedShift) }
-        savedShift.workday = day
+        savedShift.workday = storedWorkday
         savedShift.startsAt = start
         savedShift.endsAt = end
         savedShift.employee = employee

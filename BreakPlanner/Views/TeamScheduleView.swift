@@ -5,7 +5,7 @@ struct TeamScheduleView: View {
     @AppStorage("appearanceMode") private var appearanceMode: TransitTheme.Appearance = .light
     @Query(sort: \Employee.name) private var employees: [Employee]
     @Query(sort: \Shift.startsAt) private var shifts: [Shift]
-    @State private var selectedWorkday = Calendar.current.startOfDay(for: .now)
+    @State private var selectedWorkday = WorkdayDate.localCalendar.startOfDay(for: .now)
     @State private var presentedForm: PresentedForm?
     @Environment(\.scenePhase) private var scenePhase
     @State private var timelineStart = Date.now
@@ -25,9 +25,7 @@ struct TeamScheduleView: View {
     }
 
     private var workdayShifts: [Shift] {
-        let calendar = Calendar.current
-        let day = calendar.startOfDay(for: selectedWorkday)
-        return shifts.filter { calendar.startOfDay(for: $0.workday) == day }
+        shifts.filter { WorkdayDate.matches($0.workday, localDate: selectedWorkday) }
     }
 
     var body: some View {
@@ -84,6 +82,7 @@ struct TeamScheduleView: View {
                 }
             }
         }
+        .environment(\.calendar, WorkdayDate.localCalendar)
     }
 
     private func employeeRow(_ employee: Employee) -> some View {

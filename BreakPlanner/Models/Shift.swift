@@ -4,7 +4,7 @@ import SwiftData
 @Model
 final class Shift {
     @Attribute(.unique) var id: UUID
-    // Preserve the selected workday even when the shift crosses midnight.
+    // Gregorian civil workday encoded at UTC noon by WorkdayDate.
     var workday: Date
     var startsAt: Date
     var endsAt: Date
