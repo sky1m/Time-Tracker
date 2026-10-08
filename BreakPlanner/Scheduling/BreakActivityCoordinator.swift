@@ -62,6 +62,27 @@ final class BreakActivityCoordinator: ObservableObject {
         }
     }
 
+    func endActivities(forShiftIDs shiftIDs: [UUID]) async {
+        for shiftID in shiftIDs {
+            let previous = pendingByShiftID[shiftID]?.task
+            let token = UUID()
+            let task = Task { @MainActor in
+                _ = await previous?.value
+                for activity in Activity<BreakActivityAttributes>.activities
+                where activity.attributes.shiftID == shiftID {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                }
+                resultsByShiftID[shiftID] = nil
+                return ActivitySchedulingResult.alreadyEnded
+            }
+            pendingByShiftID[shiftID] = (token, task)
+            _ = await task.value
+            if pendingByShiftID[shiftID]?.token == token {
+                pendingByShiftID[shiftID] = nil
+            }
+        }
+    }
+
     private func scheduleOrUpdateActivity(shift: Shift, now: Date) async -> ActivitySchedulingResult {
         let matching = Activity<BreakActivityAttributes>.activities.filter { $0.attributes.shiftID == shift.id }
         guard shift.endsAt > now else {

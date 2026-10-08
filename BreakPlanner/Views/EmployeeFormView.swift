@@ -4,10 +4,12 @@ import SwiftData
 struct EmployeeFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var activityCoordinator: BreakActivityCoordinator
     private let employee: Employee?
     private let onSaved: () -> Void
     @State private var name: String
     @State private var errorMessage: String?
+    @State private var confirmsDeletion = false
 
     init(employee: Employee?, onSaved: @escaping () -> Void) {
         self.employee = employee
@@ -30,6 +32,18 @@ struct EmployeeFormView: View {
                     }
                 }
                 .listRowBackground(TransitTheme.surface)
+                if employee != nil {
+                    Section {
+                        Button(role: .destructive) {
+                            confirmsDeletion = true
+                        } label: {
+                            Label("Delete Employee", systemImage: "trash")
+                        }
+                    } footer: {
+                        Text("Deleting this employee also deletes all of their saved shifts.")
+                    }
+                    .listRowBackground(TransitTheme.surface)
+                }
                 if let errorMessage {
                     Section { Text(errorMessage).foregroundStyle(TransitTheme.error) }
                         .listRowBackground(TransitTheme.surface)
@@ -38,6 +52,16 @@ struct EmployeeFormView: View {
             .transitScreenStyle()
             .navigationTitle(employee == nil ? "Add Employee" : "Edit Employee")
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog(
+                "Delete Employee?",
+                isPresented: $confirmsDeletion,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Employee and Shifts", role: .destructive, action: deleteEmployee)
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This permanently removes \(employee?.name ?? "this employee") and all of their saved shifts.")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -69,6 +93,33 @@ struct EmployeeFormView: View {
                 savedEmployee.name = originalName
             }
             errorMessage = "Could not save this employee. Please try again."
+        }
+    }
+
+    private func deleteEmployee() {
+        guard let employee else { return }
+        let savedShifts: [Shift]
+        do {
+            savedShifts = try modelContext.fetch(FetchDescriptor<Shift>())
+                .filter { $0.employee?.id == employee.id }
+        } catch {
+            errorMessage = "Could not load this employee's shifts. Please try again."
+            return
+        }
+
+        for shift in savedShifts {
+            modelContext.delete(shift)
+        }
+        modelContext.delete(employee)
+        do {
+            try modelContext.save()
+            let shiftIDs = savedShifts.map(\.id)
+            Task { await activityCoordinator.endActivities(forShiftIDs: shiftIDs) }
+            onSaved()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            errorMessage = "Could not delete this employee. Please try again."
         }
     }
 }

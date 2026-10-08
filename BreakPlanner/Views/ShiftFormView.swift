@@ -12,6 +12,7 @@ struct ShiftFormView: View {
     @State private var startTime: Date
     @State private var endTime: Date
     @State private var errorMessage: String?
+    @State private var confirmsDeletion = false
 
     init(employee: Employee, shift: Shift?, workday: Date, onSaved: @escaping () -> Void) {
         self.employee = employee
@@ -46,10 +47,32 @@ struct ShiftFormView: View {
                     if let errorMessage { Text(errorMessage).foregroundStyle(TransitTheme.error) }
                 }
                 .listRowBackground(TransitTheme.surface)
+                if shift != nil {
+                    Section {
+                        Button(role: .destructive) {
+                            confirmsDeletion = true
+                        } label: {
+                            Label("Delete Shift", systemImage: "trash")
+                        }
+                    } footer: {
+                        Text("This removes only this employee's shift for the selected workday.")
+                    }
+                    .listRowBackground(TransitTheme.surface)
+                }
             }
             .transitScreenStyle()
             .navigationTitle(shift == nil ? "Add Shift" : "Edit Shift")
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog(
+                "Delete Shift?",
+                isPresented: $confirmsDeletion,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Shift", role: .destructive, action: deleteShift)
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This permanently removes \(employee.name)'s shift for \(workday.formatted(date: .abbreviated, time: .omitted)).")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -126,6 +149,20 @@ struct ShiftFormView: View {
                 savedShift.employee = original.3
             }
             errorMessage = "Could not save this shift. Please try again."
+        }
+    }
+
+    private func deleteShift() {
+        guard let shift else { return }
+        modelContext.delete(shift)
+        do {
+            try modelContext.save()
+            Task { await activityCoordinator.endActivities(forShiftIDs: [shift.id]) }
+            onSaved()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            errorMessage = "Could not delete this shift. Please try again."
         }
     }
 }
